@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const script=fs.readFileSync(new URL('./index.html',import.meta.url),'utf8').split('<script>')[1].split('</script>')[0];
+const context=vm.createContext({});vm.runInContext(script.split('function render()')[0],context);
+const sample={title:'Scene',character:'Teal robot',style:'Pastel',seconds:'31',shots:'One\nTwo\nThree\nFour\nFive\nSix'};
+let text=context.buildPlan(sample);assert(text.includes('0-6s (6s)'));assert(text.includes('26-31s (5s)'));
+assert.equal((text.match(/Continuity check/g)||[]).length,6);
+for(const changed of [{shots:''},{shots:Array(13).fill('shot').join('\n')},{seconds:'3'},{seconds:'5.5'},{seconds:'601'},{character:' '}])assert.throws(()=>context.buildPlan({...sample,...changed}));
+text=context.buildPlan({...sample,seconds:'5',shots:'One'});assert(text.includes('0-5s (5s)'));
+console.log('PASS: exact timing, character continuity, shot counts and invalid duration/input checks.');
